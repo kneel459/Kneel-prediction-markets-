@@ -37,6 +37,8 @@ export default function App() {
   const [selectedCoin, setSelectedCoin] = useState<CryptoPrice | null>(null);
   const [analysis, setAnalysis] = useState<MarketAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [analyzing, setAnalyzing] = useState(false);
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
@@ -65,19 +67,28 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 60000); // Refresh every minute
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const data = await fetchTopCoins();
-    setCoins(data);
-    if (!selectedCoin && data.length > 0) {
-      setSelectedCoin(data[0]);
+  const loadData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
+    
+    try {
+      const data = await fetchTopCoins();
+      setCoins(data);
+      setLastUpdated(new Date());
+      if (isInitial && data.length > 0) {
+        setSelectedCoin(data[0]);
+      }
+    } catch (error) {
+      console.error("Failed to load data", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
   };
 
   const handleAnalyze = async () => {
@@ -117,7 +128,23 @@ export default function App() {
             <a href="#" className="hover:text-white transition-colors">Signals</a>
           </div>
           
-          {wallet ? (
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-[10px] text-white/20 uppercase font-bold tracking-widest">Last Update</span>
+              <span className="text-[10px] font-mono text-emerald-500/60">{lastUpdated.toLocaleTimeString()}</span>
+            </div>
+            <button 
+              onClick={() => loadData(false)}
+              disabled={refreshing}
+              className={cn(
+                "p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all",
+                refreshing && "animate-spin opacity-50"
+              )}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            
+            {wallet ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-[10px] text-white/40 font-mono uppercase tracking-widest">{wallet.walletType}</span>
@@ -139,7 +166,8 @@ export default function App() {
             </button>
           )}
         </div>
-      </nav>
+      </div>
+    </nav>
 
       {/* Wallet Modal */}
       <AnimatePresence>
