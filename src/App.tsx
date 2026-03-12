@@ -652,11 +652,11 @@ export default function App() {
                   </div>
                   
                   <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
-                    LUNC Prediction <br /> Master Challenge
+                    BTC Price <br /> Master Challenge
                   </h1>
                   
                   <p className="text-lg text-white/80 font-medium max-w-lg">
-                    Prove your prediction skills on the Terra Luna Classic network. Top predictors share a prize pool of 10,000,000 LUNC.
+                    Predict the BTC closing price for March 20, 2026, according to CoinMarketCap. The closest prediction to the daily candle close wins the grand prize.
                   </p>
                   
                   <div className="flex flex-wrap gap-6 py-4">
@@ -671,18 +671,58 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Users className="w-5 h-5" />
+                        <Trophy className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="text-[10px] text-white/60 uppercase font-bold">Participants</div>
-                        <div className="font-bold">Limited to 5,000</div>
+                        <div className="text-[10px] text-white/60 uppercase font-bold">Target Date</div>
+                        <div className="font-bold">March 20, 2026</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-white/60 uppercase font-bold">Entry Fee</div>
+                        <div className="font-bold">1 LUNC</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-white/60 uppercase font-bold">Limit</div>
+                        <div className="font-bold">1 Prediction / Wallet</div>
                       </div>
                     </div>
                   </div>
 
                   <button className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                    Remind Me
+                    Join Challenge
                   </button>
+                </div>
+              </div>
+
+              {/* Prizes Section */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="glass-card p-6 border-emerald-500/30 bg-emerald-500/5 relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 opacity-10">
+                    <Trophy className="w-24 h-24" />
+                  </div>
+                  <div className="text-emerald-500 font-black text-xs uppercase tracking-[0.2em] mb-2">1st Place</div>
+                  <div className="text-3xl font-black font-mono">100,000</div>
+                  <div className="text-sm text-white/40 font-bold">LUNC</div>
+                </div>
+                <div className="glass-card p-6 border-white/10 bg-white/5 relative overflow-hidden">
+                  <div className="text-white/60 font-black text-xs uppercase tracking-[0.2em] mb-2">2nd Place</div>
+                  <div className="text-3xl font-black font-mono">50,000</div>
+                  <div className="text-sm text-white/40 font-bold">LUNC</div>
+                </div>
+                <div className="glass-card p-6 border-white/10 bg-white/5 relative overflow-hidden">
+                  <div className="text-white/60 font-black text-xs uppercase tracking-[0.2em] mb-2">3rd Place</div>
+                  <div className="text-3xl font-black font-mono">25,000</div>
+                  <div className="text-sm text-white/40 font-bold">LUNC</div>
                 </div>
               </div>
 
@@ -690,29 +730,29 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="glass-card p-8 space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                    <Brain className="w-6 h-6 text-emerald-500" />
+                    <Globe className="w-6 h-6 text-emerald-500" />
                   </div>
-                  <h3 className="text-xl font-bold">AI Guided</h3>
+                  <h3 className="text-xl font-bold">CoinMarketCap Data</h3>
                   <p className="text-sm text-white/40 leading-relaxed">
-                    Use our Gemini-powered analysis tools to inform your predictions. The challenge tests your ability to combine AI insights with market intuition.
+                    We use the official CoinMarketCap daily closing price as the source of truth for all predictions.
                   </p>
                 </div>
                 <div className="glass-card p-8 space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
                     <ShieldCheck className="w-6 h-6 text-emerald-500" />
                   </div>
-                  <h3 className="text-xl font-bold">Verified Results</h3>
+                  <h3 className="text-xl font-bold">Fair Play</h3>
                   <p className="text-sm text-white/40 leading-relaxed">
-                    All predictions are recorded on-chain or via verified snapshots to ensure complete transparency and fairness for all participants.
+                    Strict limit of one prediction per wallet. Any attempt to bypass this will result in disqualification.
                   </p>
                 </div>
                 <div className="glass-card p-8 space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-emerald-500" />
+                    <Brain className="w-6 h-6 text-emerald-500" />
                   </div>
-                  <h3 className="text-xl font-bold">Epic Rewards</h3>
+                  <h3 className="text-xl font-bold">AI Assistance</h3>
                   <p className="text-sm text-white/40 leading-relaxed">
-                    Beyond the LUNC prize pool, top performers receive exclusive "KNEEL Master" badges and priority access to future AI features.
+                    Use our built-in Gemini AI forecasting tools to help refine your prediction before submitting.
                   </p>
                 </div>
               </div>
