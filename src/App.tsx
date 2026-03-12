@@ -24,6 +24,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchTopCoins, CryptoPrice } from './services/marketData';
 import { analyzeMarket, MarketAnalysis } from './services/geminiService';
+import { connectKeplr, connectGalaxyStation, WalletInfo } from './services/walletService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -37,6 +38,29 @@ export default function App() {
   const [analysis, setAnalysis] = useState<MarketAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+
+  const handleConnectWallet = async (type: 'keplr' | 'galaxy') => {
+    setWalletError(null);
+    try {
+      let info: WalletInfo;
+      if (type === 'keplr') {
+        info = await connectKeplr();
+      } else {
+        info = await connectGalaxyStation();
+      }
+      setWallet(info);
+      setShowWalletModal(false);
+    } catch (err: any) {
+      setWalletError(err.message || "Failed to connect wallet");
+    }
+  };
+
+  const disconnectWallet = () => {
+    setWallet(null);
+  };
 
   useEffect(() => {
     loadData();
@@ -90,11 +114,103 @@ export default function App() {
             <a href="#" className="hover:text-white transition-colors">Portfolio</a>
             <a href="#" className="hover:text-white transition-colors">Signals</a>
           </div>
-          <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-bold hover:bg-emerald-400 transition-all">
-            Connect Wallet
-          </button>
+          
+          {wallet ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-[10px] text-white/40 font-mono uppercase tracking-widest">{wallet.walletType}</span>
+                <span className="text-xs font-bold text-emerald-500">{wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}</span>
+              </div>
+              <button 
+                onClick={disconnectWallet}
+                className="bg-white/5 border border-white/10 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-white/10 transition-all"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowWalletModal(true)}
+              className="bg-white text-black px-4 py-2 rounded-full text-sm font-bold hover:bg-emerald-400 transition-all"
+            >
+              Connect Wallet
+            </button>
+          )}
         </div>
       </nav>
+
+      {/* Wallet Modal */}
+      <AnimatePresence>
+        {showWalletModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowWalletModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-md glass-card p-8 space-y-6"
+            >
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Connect to LUNC</h2>
+                <p className="text-sm text-white/40">Select your preferred wallet to connect to Terra Luna Classic</p>
+              </div>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={() => handleConnectWallet('keplr')}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#1e1e1e] rounded-xl flex items-center justify-center">
+                      <img src="https://raw.githubusercontent.com/chainapsis/keplr-wallet/master/packages/extension/src/public/assets/img/icon-128.png" className="w-6 h-6" alt="Keplr" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold">Keplr Wallet</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Cosmos Standard</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                </button>
+
+                <button 
+                  onClick={() => handleConnectWallet('galaxy')}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#1e1e1e] rounded-xl flex items-center justify-center overflow-hidden">
+                      <img src="https://assets.terra.money/icon/station-extension/icon.png" className="w-full h-full object-cover" alt="Galaxy Station" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold">Galaxy Station</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Terra Classic Native</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                </button>
+              </div>
+
+              {walletError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-xs text-center">
+                  {walletError}
+                </div>
+              )}
+
+              <button 
+                onClick={() => setShowWalletModal(false)}
+                className="w-full text-xs text-white/40 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
