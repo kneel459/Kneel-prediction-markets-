@@ -24,7 +24,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchTopCoins, CryptoPrice } from './services/marketData';
 import { analyzeMarket, MarketAnalysis } from './services/geminiService';
-import { connectKeplr, connectGalaxyStation, WalletInfo } from './services/walletService';
+import { connectKeplr, connectGalaxyStation, connectLuncdash, WalletInfo } from './services/walletService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -42,14 +42,16 @@ export default function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
 
-  const handleConnectWallet = async (type: 'keplr' | 'galaxy') => {
+  const handleConnectWallet = async (type: 'keplr' | 'galaxy' | 'luncdash') => {
     setWalletError(null);
     try {
       let info: WalletInfo;
       if (type === 'keplr') {
         info = await connectKeplr();
-      } else {
+      } else if (type === 'galaxy') {
         info = await connectGalaxyStation();
+      } else {
+        info = await connectLuncdash();
       }
       setWallet(info);
       setShowWalletModal(false);
@@ -157,11 +159,12 @@ export default function App() {
               className="relative w-full max-w-md glass-card p-8 space-y-6"
             >
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Connect to LUNC</h2>
-                <p className="text-sm text-white/40">Select your preferred wallet to connect to Terra Luna Classic</p>
+                <h2 className="text-2xl font-bold mb-2">Connect to KNEEL</h2>
+                <p className="text-sm text-white/40">Select your wallet (Desktop or Mobile In-App Browser)</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="text-[10px] uppercase tracking-widest text-white/20 font-bold mb-1">Keplr Ecosystem</div>
                 <button 
                   onClick={() => handleConnectWallet('keplr')}
                   className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all group"
@@ -172,12 +175,13 @@ export default function App() {
                     </div>
                     <div className="text-left">
                       <div className="font-bold">Keplr Wallet</div>
-                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Cosmos Standard</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Desktop & Mobile</div>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
                 </button>
 
+                <div className="text-[10px] uppercase tracking-widest text-white/20 font-bold mt-4 mb-1">Terra Classic Native</div>
                 <button 
                   onClick={() => handleConnectWallet('galaxy')}
                   className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all group"
@@ -188,7 +192,24 @@ export default function App() {
                     </div>
                     <div className="text-left">
                       <div className="font-bold">Galaxy Station</div>
-                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Terra Classic Native</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Desktop & Mobile</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                </button>
+
+                <div className="text-[10px] uppercase tracking-widest text-white/20 font-bold mt-4 mb-1">Community Wallets</div>
+                <button 
+                  onClick={() => handleConnectWallet('luncdash')}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#1e1e1e] rounded-xl flex items-center justify-center">
+                      <Globe className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold">Luncdash Wallet</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Mobile App</div>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
@@ -196,8 +217,22 @@ export default function App() {
               </div>
 
               {walletError && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-xs text-center">
-                  {walletError}
+                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl space-y-2">
+                  <p className="text-rose-500 text-xs font-bold text-center">{walletError}</p>
+                  {walletError.includes("Mobile App browser") && (
+                    <div className="pt-2 border-t border-rose-500/10 flex flex-col gap-2">
+                      <p className="text-[10px] text-white/60 text-center">To connect on mobile, copy this URL and paste it into the browser inside your Wallet App.</p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          alert("URL copied to clipboard!");
+                        }}
+                        className="text-[10px] bg-white/10 py-1 rounded hover:bg-white/20 transition-colors"
+                      >
+                        Copy App URL
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

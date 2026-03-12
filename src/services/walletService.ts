@@ -67,15 +67,23 @@ export const LUNC_CONFIG = {
 };
 
 export async function connectKeplr(): Promise<WalletInfo> {
+  // Check if we are on mobile
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
   if (!window.keplr) {
-    throw new Error("Keplr extension not found");
+    if (isMobile) {
+      // If on mobile and no keplr object, we might need to redirect to the in-app browser
+      // or suggest using the Keplr app. 
+      // For now, we'll throw a specific error that we can handle in the UI.
+      throw new Error("Keplr not detected. If you are on mobile, please open this site inside the Keplr Mobile App browser.");
+    }
+    throw new Error("Keplr extension not found. Please install it from keplr.app");
   }
 
-  // Suggest chain if not added
   try {
     await window.keplr.experimentalSuggestChain(LUNC_CONFIG);
   } catch (e) {
-    console.warn("Failed to suggest chain, it might already exist", e);
+    console.warn("Failed to suggest chain", e);
   }
 
   await window.keplr.enable(LUNC_CHAIN_ID);
@@ -91,23 +99,52 @@ export async function connectKeplr(): Promise<WalletInfo> {
 }
 
 export async function connectGalaxyStation(): Promise<WalletInfo> {
-  // Galaxy Station often uses the 'station' or 'terraStation' object
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const station = window.station || window.terraStation;
   
   if (!station) {
-    throw new Error("Galaxy Station / Terra Station extension not found");
+    if (isMobile) {
+      throw new Error("Galaxy Station not detected. Please open this site inside the Galaxy Station Mobile App browser.");
+    }
+    throw new Error("Galaxy Station extension not found. Please install it from the Chrome Web Store.");
   }
 
-  // Request connection
-  const info = await station.connect();
+  try {
+    const info = await station.connect();
+    if (!info || !info.address) {
+      throw new Error("Connection rejected or failed");
+    }
+
+    return {
+      address: info.address,
+      name: "Galaxy User",
+      walletType: 'galaxy'
+    };
+  } catch (e: any) {
+    throw new Error(e.message || "Failed to connect to Galaxy Station");
+  }
+}
+
+export async function connectLuncdash(): Promise<WalletInfo> {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // Luncdash often uses the station provider or its own injected provider
+  const provider = (window as any).luncdash || window.station || window.terraStation;
   
-  if (!info || !info.address) {
-    throw new Error("Failed to connect to Galaxy Station");
+  if (!provider) {
+    if (isMobile) {
+      throw new Error("Luncdash not detected. Please open KNEEL inside the Luncdash Mobile App browser.");
+    }
+    throw new Error("Luncdash provider not found.");
   }
 
-  return {
-    address: info.address,
-    name: "Galaxy User",
-    walletType: 'galaxy'
-  };
+  try {
+    const info = await provider.connect();
+    return {
+      address: info.address,
+      name: "Luncdash User",
+      walletType: 'galaxy' // Reusing galaxy type for styling
+    };
+  } catch (e: any) {
+    throw new Error(e.message || "Failed to connect to Luncdash");
+  }
 }
