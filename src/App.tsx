@@ -106,7 +106,7 @@ export default function App() {
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <Zap className="w-5 h-5 text-black fill-current" />
             </div>
-            <span className="font-bold text-xl tracking-tight">CryptoPredict<span className="text-emerald-500">AI</span></span>
+            <span className="font-bold text-xl tracking-tight">KNEEL</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
             <a href="#" className="hover:text-white transition-colors">Markets</a>
@@ -474,7 +474,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2 opacity-50">
             <Zap className="w-5 h-5 text-emerald-500 fill-current" />
-            <span className="font-bold text-lg tracking-tight">CryptoPredict<span className="text-emerald-500">AI</span></span>
+            <span className="font-bold text-lg tracking-tight">KNEEL</span>
           </div>
           <div className="flex gap-8 text-xs font-medium text-white/40">
             <a href="#" className="hover:text-white transition-colors">Documentation</a>
@@ -483,7 +483,7 @@ export default function App() {
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
           </div>
           <div className="text-[10px] font-mono text-white/20">
-            &copy; 2026 CRYPTOPREDICT AI ENGINE. ALL RIGHTS RESERVED.
+            &copy; 2026 KNEEL AI ENGINE. ALL RIGHTS RESERVED.
           </div>
         </div>
       </footer>
