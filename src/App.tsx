@@ -10,7 +10,10 @@ import {
   ChevronRight,
   Zap,
   ShieldCheck,
-  Globe
+  Globe,
+  Trophy,
+  Calendar,
+  Users
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -23,7 +26,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchTopCoins, CryptoPrice } from './services/marketData';
-import { analyzeMarket, MarketAnalysis } from './services/geminiService';
+import { analyzeMarket, MarketAnalysis, forecastPrice, PriceForecast } from './services/geminiService';
 import { connectKeplr, connectGalaxyStation, connectLuncdash, WalletInfo } from './services/walletService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -40,9 +43,12 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [analyzing, setAnalyzing] = useState(false);
+  const [forecasting, setForecasting] = useState(false);
+  const [forecast, setForecast] = useState<PriceForecast | null>(null);
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'markets' | 'challenges'>('markets');
 
   const handleConnectWallet = async (type: 'keplr' | 'galaxy' | 'luncdash') => {
     setWalletError(null);
@@ -99,9 +105,23 @@ export default function App() {
     setAnalyzing(false);
   };
 
+  const handleForecast = async (targetDate: string) => {
+    if (!selectedCoin) return;
+    setForecasting(true);
+    try {
+      const result = await forecastPrice(selectedCoin.name, selectedCoin.sparkline_in_7d?.price || [], targetDate);
+      setForecast(result);
+    } catch (error) {
+      console.error("Forecast failed", error);
+    } finally {
+      setForecasting(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedCoin) {
       setAnalysis(null);
+      setForecast(null);
     }
   }, [selectedCoin]);
 
@@ -122,8 +142,18 @@ export default function App() {
             <span className="font-bold text-xl tracking-tight">KNEEL</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
-            <a href="#" className="hover:text-white transition-colors">Markets</a>
-            <a href="#" className="hover:text-white transition-colors">Predictions</a>
+            <button 
+              onClick={() => setActiveTab('markets')}
+              className={cn("hover:text-white transition-colors", activeTab === 'markets' && "text-white")}
+            >
+              Markets
+            </button>
+            <button 
+              onClick={() => setActiveTab('challenges')}
+              className={cn("hover:text-white transition-colors", activeTab === 'challenges' && "text-white")}
+            >
+              Challenges
+            </button>
             <a href="#" className="hover:text-white transition-colors">Portfolio</a>
             <a href="#" className="hover:text-white transition-colors">Signals</a>
           </div>
@@ -275,7 +305,16 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <AnimatePresence mode="wait">
+          {activeTab === 'markets' ? (
+            <motion.div 
+              key="markets"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+            >
         
         {/* Left Column: Market List */}
         <div className="lg:col-span-4 space-y-6">
@@ -360,11 +399,19 @@ export default function App() {
                   <div className="flex gap-2">
                     <button 
                       onClick={handleAnalyze}
-                      disabled={analyzing}
-                      className="flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-xl font-bold hover:bg-emerald-400 transition-all disabled:opacity-50"
+                      disabled={analyzing || forecasting}
+                      className="flex items-center gap-2 bg-emerald-500 text-black px-4 py-2 rounded-xl font-bold hover:bg-emerald-400 transition-all disabled:opacity-50 text-sm"
                     >
                       {analyzing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
                       AI Analysis
+                    </button>
+                    <button 
+                      onClick={() => handleForecast('2026-03-20')}
+                      disabled={forecasting || analyzing}
+                      className="flex items-center gap-2 bg-white/10 text-white border border-white/10 px-4 py-2 rounded-xl font-bold hover:bg-white/20 transition-all disabled:opacity-50 text-sm"
+                    >
+                      {forecasting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                      Forecast Mar 20
                     </button>
                   </div>
                 </div>
@@ -415,6 +462,50 @@ export default function App() {
 
           {/* AI Insights Section */}
           <AnimatePresence mode="wait">
+            {forecast && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="glass-card p-6 border-emerald-500/20 bg-emerald-500/[0.02] mb-6"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-emerald-500" />
+                    <h3 className="font-bold">Price Forecast: March 20, 2026</h3>
+                  </div>
+                  <div className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-bold",
+                    forecast.riskLevel === 'Low' ? 'bg-emerald-500/10 text-emerald-500' :
+                    forecast.riskLevel === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500'
+                  )}>
+                    {forecast.riskLevel} Risk
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Predicted Close</span>
+                    <div className="text-3xl font-mono font-black text-emerald-400">
+                      ${forecast.predictedPrice.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Expected Range</span>
+                    <div className="text-lg font-mono text-white/80">
+                      ${forecast.expectedRange.min.toLocaleString()} - ${forecast.expectedRange.max.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="md:col-span-1">
+                    <span className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-2 block">AI Reasoning</span>
+                    <p className="text-xs text-white/60 leading-relaxed italic">
+                      "{forecast.reasoning}"
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {analysis ? (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -493,6 +584,14 @@ export default function App() {
                   </div>
                 </div>
               </motion.div>
+            ) : forecasting ? (
+              <div className="glass-card p-12 flex flex-col items-center justify-center gap-4 text-white/40">
+                <RefreshCw className="w-12 h-12 animate-spin text-emerald-500" />
+                <div className="text-center">
+                  <h3 className="text-white font-bold mb-1">Gemini AI is forecasting...</h3>
+                  <p className="text-xs">Projecting future price levels for March 20, 2026</p>
+                </div>
+              </div>
             ) : analyzing ? (
               <div className="glass-card p-12 flex flex-col items-center justify-center gap-4 text-white/40">
                 <Activity className="w-12 h-12 animate-pulse text-emerald-500" />
@@ -530,7 +629,127 @@ export default function App() {
             ))}
           </div>
 
-        </div>
+            </div>
+          </motion.div>
+        ) : (
+            <motion.div 
+              key="challenges"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              {/* Hero Challenge */}
+              <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-emerald-600 to-emerald-900 p-8 md:p-12">
+                <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+                  <Trophy className="w-full h-full rotate-12 translate-x-1/4" />
+                </div>
+                
+                <div className="relative z-10 max-w-2xl space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest">
+                    <Zap className="w-3 h-3 fill-current" />
+                    New Challenge Available
+                  </div>
+                  
+                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
+                    LUNC Prediction <br /> Master Challenge
+                  </h1>
+                  
+                  <p className="text-lg text-white/80 font-medium max-w-lg">
+                    Prove your prediction skills on the Terra Luna Classic network. Top predictors share a prize pool of 10,000,000 LUNC.
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-white/60 uppercase font-bold">Registration</div>
+                        <div className="font-bold">March 14 - 16, 2026</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-white/60 uppercase font-bold">Participants</div>
+                        <div className="font-bold">Limited to 5,000</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
+                    Remind Me
+                  </button>
+                </div>
+              </div>
+
+              {/* Challenge Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="glass-card p-8 space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                    <Brain className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-bold">AI Guided</h3>
+                  <p className="text-sm text-white/40 leading-relaxed">
+                    Use our Gemini-powered analysis tools to inform your predictions. The challenge tests your ability to combine AI insights with market intuition.
+                  </p>
+                </div>
+                <div className="glass-card p-8 space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                    <ShieldCheck className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-bold">Verified Results</h3>
+                  <p className="text-sm text-white/40 leading-relaxed">
+                    All predictions are recorded on-chain or via verified snapshots to ensure complete transparency and fairness for all participants.
+                  </p>
+                </div>
+                <div className="glass-card p-8 space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                    <Trophy className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-bold">Epic Rewards</h3>
+                  <p className="text-sm text-white/40 leading-relaxed">
+                    Beyond the LUNC prize pool, top performers receive exclusive "KNEEL Master" badges and priority access to future AI features.
+                  </p>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="glass-card p-8">
+                <h3 className="text-2xl font-bold mb-8">Challenge Timeline</h3>
+                <div className="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-white/10">
+                  <div className="relative pl-12">
+                    <div className="absolute left-0 top-1 w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-black font-bold z-10">1</div>
+                    <div>
+                      <div className="text-emerald-500 font-bold uppercase tracking-widest text-[10px]">Registration Phase</div>
+                      <div className="text-lg font-bold">March 14 - 16, 2026</div>
+                      <p className="text-sm text-white/40 mt-1">Connect your wallet and sign up to reserve your spot in the challenge.</p>
+                    </div>
+                  </div>
+                  <div className="relative pl-12 opacity-40">
+                    <div className="absolute left-0 top-1 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold z-10">2</div>
+                    <div>
+                      <div className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Prediction Phase</div>
+                      <div className="text-lg font-bold">March 17 - 24, 2026</div>
+                      <p className="text-sm text-white/40 mt-1">Submit your daily predictions for LUNC and USTC price movements.</p>
+                    </div>
+                  </div>
+                  <div className="relative pl-12 opacity-40">
+                    <div className="absolute left-0 top-1 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold z-10">3</div>
+                    <div>
+                      <div className="text-white/60 font-bold uppercase tracking-widest text-[10px]">Winner Announcement</div>
+                      <div className="text-lg font-bold">March 25, 2026</div>
+                      <p className="text-sm text-white/40 mt-1">Rewards distributed to the top 100 predictors on the leaderboard.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <footer className="border-t border-white/5 py-12 mt-12">
