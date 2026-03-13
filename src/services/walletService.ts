@@ -148,3 +148,23 @@ export async function connectLuncdash(): Promise<WalletInfo> {
     throw new Error(e.message || "Failed to connect to Luncdash");
   }
 }
+
+export async function getBalance(address: string): Promise<{ lunc: number; ustc: number }> {
+  try {
+    const response = await fetch(`${LUNC_CONFIG.rest}/cosmos/bank/v1beta1/balances/${address}`);
+    if (!response.ok) throw new Error("Failed to fetch balance");
+    const data = await response.json();
+    
+    const balances = data.balances || [];
+    const luncBalance = balances.find((b: any) => b.denom === "uluna")?.amount || "0";
+    const ustcBalance = balances.find((b: any) => b.denom === "uusd")?.amount || "0";
+
+    return {
+      lunc: parseInt(luncBalance) / 1000000,
+      ustc: parseInt(ustcBalance) / 1000000
+    };
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return { lunc: 0, ustc: 0 };
+  }
+}

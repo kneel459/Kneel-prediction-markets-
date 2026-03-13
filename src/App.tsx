@@ -27,7 +27,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchTopCoins, CryptoPrice } from './services/marketData';
 import { analyzeMarket, MarketAnalysis, forecastPrice, PriceForecast } from './services/geminiService';
-import { connectKeplr, connectGalaxyStation, connectLuncdash, WalletInfo } from './services/walletService';
+import { connectKeplr, connectGalaxyStation, connectLuncdash, WalletInfo, getBalance } from './services/walletService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -49,6 +49,9 @@ export default function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'markets' | 'challenges'>('markets');
+  const [treasuryBalance, setTreasuryBalance] = useState<{ lunc: number; ustc: number } | null>(null);
+
+  const TREASURY_ADDRESS = "terra195ej2wxcds5vkjtl540pd0sj47tjx43mms76mt";
 
   const handleConnectWallet = async (type: 'keplr' | 'galaxy' | 'luncdash') => {
     setWalletError(null);
@@ -74,9 +77,18 @@ export default function App() {
 
   useEffect(() => {
     loadData(true);
-    const interval = setInterval(() => loadData(false), 60000); // Refresh every minute
+    fetchTreasury();
+    const interval = setInterval(() => {
+      loadData(false);
+      fetchTreasury();
+    }, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
+
+  const fetchTreasury = async () => {
+    const balance = await getBalance(TREASURY_ADDRESS);
+    setTreasuryBalance(balance);
+  };
 
   const loadData = async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -306,6 +318,38 @@ export default function App() {
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Real-time LUNC/USTC Ticker */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {coins.filter(c => ['terra-luna', 'terrausd'].includes(c.id)).map(coin => (
+            <div key={coin.id} className="glass-card p-4 flex items-center justify-between border-emerald-500/20 bg-emerald-500/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                  <span className="font-black text-xs text-emerald-500">{coin.symbol.toUpperCase()}</span>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{coin.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-mono font-bold">${coin.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</span>
+                    <span className={cn(
+                      "text-xs font-bold",
+                      coin.price_change_percentage_24h >= 0 ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {coin.price_change_percentage_24h >= 0 ? '+' : ''}{coin.price_change_percentage_24h.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block h-10 w-24">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={coin.sparkline_in_7d?.price.slice(-24).map((p, i) => ({ p, i })) || []}>
+                    <Area type="monotone" dataKey="p" stroke={coin.price_change_percentage_24h >= 0 ? "#10b981" : "#f43f5e"} fill="transparent" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
           {activeTab === 'markets' ? (
             <motion.div 
@@ -640,67 +684,107 @@ export default function App() {
               className="space-y-8"
             >
               {/* Hero Challenge */}
-              <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-emerald-600 to-emerald-900 p-8 md:p-12">
-                <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
-                  <Trophy className="w-full h-full rotate-12 translate-x-1/4" />
-                </div>
-                
-                <div className="relative z-10 max-w-2xl space-y-6">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest">
-                    <Zap className="w-3 h-3 fill-current" />
-                    New Challenge Available
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-8 relative overflow-hidden rounded-[32px] bg-gradient-to-br from-emerald-600 to-emerald-900 p-8 md:p-12">
+                  <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+                    <Trophy className="w-full h-full rotate-12 translate-x-1/4" />
                   </div>
                   
-                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
-                    BTC Price <br /> Master Challenge
-                  </h1>
-                  
-                  <p className="text-lg text-white/80 font-medium max-w-lg">
-                    Predict the BTC closing price for March 20, 2026, according to CoinMarketCap. The closest prediction to the daily candle close wins the grand prize.
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Calendar className="w-5 h-5" />
+                  <div className="relative z-10 max-w-2xl space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest">
+                      <Zap className="w-3 h-3 fill-current" />
+                      New Challenge Available
+                    </div>
+                    
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
+                      BTC Price <br /> Master Challenge
+                    </h1>
+                    
+                    <p className="text-lg text-white/80 font-medium max-w-lg">
+                      Predict the BTC closing price for March 20, 2026, according to CoinMarketCap. The closest prediction to the daily candle close wins the grand prize.
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                          <Calendar className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-white/60 uppercase font-bold">Registration</div>
+                          <div className="font-bold">March 14 - 16, 2026</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-white/60 uppercase font-bold">Registration</div>
-                        <div className="font-bold">March 14 - 16, 2026</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                          <Trophy className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-white/60 uppercase font-bold">Target Date</div>
+                          <div className="font-bold">March 20, 2026</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-white/60 uppercase font-bold">Entry Fee</div>
+                          <div className="font-bold">1 LUNC</div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Trophy className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-white/60 uppercase font-bold">Target Date</div>
-                        <div className="font-bold">March 20, 2026</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Zap className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-white/60 uppercase font-bold">Entry Fee</div>
-                        <div className="font-bold">1 LUNC</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <ShieldCheck className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-white/60 uppercase font-bold">Limit</div>
-                        <div className="font-bold">1 Prediction / Wallet</div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <button className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                    Join Challenge
-                  </button>
+                    <button className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
+                      Join Challenge
+                    </button>
+                  </div>
+                </div>
+
+                {/* Treasury Info Panel */}
+                <div className="lg:col-span-4 space-y-6">
+                  <div className="glass-card p-8 bg-black/40 border-emerald-500/20 relative overflow-hidden h-full flex flex-col justify-between">
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-6">
+                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40">Treasury Wallet</span>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        <div>
+                          <div className="text-[10px] text-white/20 uppercase font-bold mb-1">Prize Pool Source</div>
+                          <div className="font-mono text-[10px] break-all text-emerald-500/80">{TREASURY_ADDRESS}</div>
+                        </div>
+
+                        {treasuryBalance ? (
+                          <div className="space-y-4">
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                              <div className="text-[10px] text-white/40 uppercase font-bold mb-1">LUNC Balance</div>
+                              <div className="text-2xl font-black font-mono">
+                                {treasuryBalance.lunc.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </div>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                              <div className="text-[10px] text-white/40 uppercase font-bold mb-1">USTC Balance</div>
+                              <div className="text-2xl font-black font-mono">
+                                {treasuryBalance.ustc.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="animate-pulse space-y-4">
+                            <div className="h-20 bg-white/5 rounded-2xl" />
+                            <div className="h-20 bg-white/5 rounded-2xl" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 pt-6 border-t border-white/5">
+                      <p className="text-[10px] text-white/40 leading-relaxed uppercase tracking-wider">
+                        This treasury wallet secures the prize pool for all KNEEL challenges. All rewards are distributed directly from this address.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
